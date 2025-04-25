@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Mon Profil</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+
+<body>
+	
+	<nav class="navbar">
+	     <div class="logo"><a th:href="@{/user/dashboard}">Pay My Buddy</a></div>
+	    <ul class="nav-links">
+	        <li><a th:href="@{/user/dashboard}" class="nav-item">Transférer</a></li>
+	        <li><a th:href="@{/user/profile}" class="nav-item">Profil</a></li>
+	        <li><a th:href="@{/user/add-friend}" class="nav-item">Ajouter relation</a></li>
+	        <li><a th:href="@{/logout}" class="nav-item logout">Se déconnecter</a></li>
+	    </ul>
+	</nav>
+	
+    <div class="container">
+        <h2>Mon Profil</h2>
+
+    
+        <div class="section">
+            <h3>Mes informations</h3>
+			<form th:action="@{/user/profile}" method="post" th:object="${user}">
+			   
+			    <div class="form-group">
+			        <label>Identifiant :</label>
+			        <div class="editable">
+			            <input type="text" name="username" th:value="${user.username}" readonly class="editable-input" id="username">
+			            <span class="edit-icon">→</span>
+			        </div>
+			    </div>
+				
+
+			    <div class="form-group">
+			        <label>Email :</label>
+			        <div class="editable">
+			            <input type="email" name="email" th:value="${user.email}" readonly class="editable-input" id="email">
+			            <span class="edit-icon">→</span>
+			        </div>
+			    </div>
+				<div th:if="${errorEmail}" style="color: red; margin-top: 10px;" th:text="${errorEmail}"></div>
+
+			    <div class="form-group">
+			        <label>Mot de passe actuel :</label>
+			        <div class="editable">
+			            <input type="password" name="currentPassword" placeholder="Entrez votre mot de passe actuel" required readonly class="editable-input" id="currentPassword">
+			            <span class="edit-icon">→</span>
+			        </div>
+			    </div>			
+			    <div class="form-group">
+			        <label>Nouveau mot de passe :</label>
+			        <div class="editable">
+			            <input type="password" name="newPassword" id="newPassword" placeholder="Entrez un nouveau mot de passe" readonly class="editable-input">
+			            <span class="edit-icon">→</span>
+			        </div>
+			    </div>
+				<div th:if="${errorPassword}" style="color: red; margin-top: 10px;" th:text="${errorPassword}"></div>
+
+			    <div class="form-group confirm-password" id="confirmPasswordGroup" style="display: none;">
+			        <label>Confirmer le nouveau mot de passe :</label>
+			        <input type="password" name="confirmNewPassword" placeholder="Confirmer le nouveau mot de passe" id="confirmNewPassword" class="editable-input">
+			    </div>
+				
+				
+
+			    <div th:if="${success}" style="color: green; margin-top: 10px;" th:text="${success}"></div>
+				<div th:if="${error}" style="color: red; margin-top: 10px;" th:text="${error}"></div>
+			    <button type="submit" class="orange">Mettre à jour mes informations</button>
+			</form>
+        </div>
+
+    
+        <div class="section">
+            <h3>Solde du compte bancaire</h3>
+            <div class="balance" th:text="${user.balance}">0.00€</div>
+        </div>
+
+        <!-- Section dépôt et retrait d'argent -->
+        <div class="section">
+            <h3>Compte bancaire</h3>
+
+            <form th:action="@{/user/deposit}" method="post">
+                <div class="form-group">
+                    <label>Montant à déposer (€) :</label>
+                    <input type="number" name="amount" step="0.01" min="0.01" required>
+                </div>
+				<div th:if="${param.successDepositMoney}" style="color: green; margin-top: 10px;" th:text="${param.successDepositMoney}"></div>
+				<div th:if="${param.errorDepositMoney}" style="color: red; margin-top: 10px;" th:text="${param.errorDepositMoney}"></div>
+                <button type="submit" class="orange">Déposer</button>
+            </form>
+
+            <form th:action="@{/user/withdraw}" method="post">
+                <div class="form-group">
+                    <label>Montant à retirer (€) :</label>
+                    <input type="number" name="amount" step="0.01" min="0.01" required>
+                </div>
+				<div th:if="${param.successWithdrawMoney}" style="color: green; margin-top: 10px;" th:text="${param.successWithdrawMoney}"></div>
+				<div th:if="${param.errorWithdrawMoney}" style="color: red; margin-top: 10px;" th:text="${param.errorWithdrawMoney}"></div>
+                <button type="submit" class="orange">Retirer</button>
+            </form>
+        </div>
+    </div>
+	<script>
+	  const editableInputs = document.querySelectorAll('.editable-input');
+	  const newPassword = document.getElementById('newPassword');
+	  const confirmGroup = document.getElementById('confirmPasswordGroup');
+	  const confirmInput = document.getElementById('confirmNewPassword');
+
+	 
+	  editableInputs.forEach(input => {
+	    input.addEventListener('click', () => {
+	      input.removeAttribute('readonly');
+	      input.focus();
+	    });
+	  });
+
+	 
+	  confirmGroup.style.display = 'none';
+
+	  document.addEventListener('click', function (e) {
+	    let clickedInsideInput = false;
+
+	    editableInputs.forEach(input => {
+	      if (input.contains(e.target)) {
+	        clickedInsideInput = true;
+	      }
+	    });
+
+	    if (newPassword.contains(e.target) || confirmInput.contains(e.target)) {
+	     
+	      confirmGroup.style.display = 'flex';
+	    } else {
+	     
+	      confirmGroup.style.display = 'none';
+	    }
+
+	   
+	    editableInputs.forEach(input => {
+	      if (!input.contains(e.target)) {
+	        input.setAttribute('readonly', true);
+	      }
+	    });
+	  });
+	</script>
+</body>
+</html>

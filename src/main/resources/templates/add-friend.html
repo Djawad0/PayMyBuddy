@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Ajouter un ami</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+	
+	<nav class="navbar">
+	     <div class="logo"><a th:href="@{/user/dashboard}">Pay My Buddy</a></div>
+	    <ul class="nav-links">
+	        <li><a th:href="@{/user/dashboard}" class="nav-item">Transférer</a></li>
+	        <li><a th:href="@{/user/profile}" class="nav-item">Profil</a></li>
+	        <li><a th:href="@{/user/add-friend}" class="nav-item">Ajouter relation</a></li>
+	        <li><a th:href="@{/logout}" class="nav-item logout">Se déconnecter</a></li>		
+	    </ul>
+	</nav>
+	
+    <div class="container">
+        <h2>Ajouter un ami</h2>
+
+        <div class="section">
+            <form th:action="@{/user/add-friend}" method="post" class="add-friend-form">
+                <div class="form-group">
+                    <label for="friendEmail">Email de l'ami :</label>
+                    <input type="email" name="friendEmail" placeholder="exemple@domaine.com" required>
+                </div>
+				<div th:if="${success}" style="color: green; margin-top: 10px;" th:text="${success}"></div>
+			    <div th:if="${error}" style="color: red; margin-top: 10px;" th:text="${error}"></div>
+                <button type="submit" class="orange">Ajouter en ami</button>
+            </form>      
+        </div>
+    </div>
+</body>
+</html>

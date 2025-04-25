@@ -46,7 +46,7 @@ public class TransactionService {
 	                        return new RuntimeException("Utilisateur avec l'email " + transaction.getReceiverEmail() + " non trouvé");
 	                    });
 	            
-	            if (transaction.getAmount() < 0) {
+	            if (transaction.getAmount() < 0.01 || transaction.getAmount() == 0) {
 	                log.error("Virement banque échoué : Montant incorrect");
 	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 	                        .body("Montant incorrect.");
@@ -108,7 +108,7 @@ public class TransactionService {
 		 try {
 	            User user = customUserDetailsService.getAuthenticatedUser();
 	            
-	            if (transaction.getAmount() < 0) {
+	            if (transaction.getAmount() < 0.01) {
 	                log.error("Virement banque échoué : Montant incorrect");
 	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 	                        .body("Montant incorrect.");
@@ -157,7 +157,7 @@ public class TransactionService {
 		 try {
 	            User user = customUserDetailsService.getAuthenticatedUser();
 	            
-	            if (transaction.getAmount() < 0) {
+	            if (transaction.getAmount() < 0.01) {
 	                log.error("Retrait banque échoué : Montant incorrect");
 	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 	                        .body("Montant incorrect.");

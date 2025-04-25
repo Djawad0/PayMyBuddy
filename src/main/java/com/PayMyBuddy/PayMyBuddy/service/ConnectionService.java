@@ -30,49 +30,51 @@ public class ConnectionService {
 	public ResponseEntity<String> createConnection(String email) {
 		
 		try {
-            User user = customUserDetailsService.getAuthenticatedUser();
+	        User user = customUserDetailsService.getAuthenticatedUser();
 
-            if (user.getEmail().equals(email)) {
-                log.error("Ajout ami échoué : Tentative d'ajout de soi-même par {}", user.getEmail());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Vous ne pouvez pas vous ajouter comme ami.");
-            }
+	       
+	        log.info("Tentative d'ajout en ami de {} par {}", email, user.getEmail());
 
-            User friend = dbUserRepository.findByEmail(email)
-                    .orElseThrow(() -> {
-                        log.error("Ajout ami échoué : Utilisateur non trouvé avec email {}", email);
-                        return new RuntimeException("Utilisateur avec l'email " + email + " non trouvé");
-                    });
+	       
+	        if (user.getEmail().equals(email)) {
+	            log.error("Ajout ami échoué : Tentative d'ajout de soi-même par {}", user.getEmail());
+	            return ResponseEntity.badRequest().body("Vous ne pouvez pas vous ajouter comme ami.");
+	        }
 
-            ConnectionId connectionId1 = new ConnectionId(user.getId(), friend.getId());
-            ConnectionId connectionId2 = new ConnectionId(friend.getId(), user.getId());
+	     
+	        User friend = dbUserRepository.findByEmail(email)
+	                .orElseThrow(() -> {
+	                    log.error("Ajout ami échoué : Utilisateur non trouvé avec email {}", email);
+	                    return new RuntimeException("Utilisateur non trouvé : " + email);
+	                });
 
-            if (dbConnectionRepository.existsById(connectionId1) || dbConnectionRepository.existsById(connectionId2)) {
-                log.error("Ajout ami échoué : Déjà amis {} et {}", user.getEmail(), friend.getEmail());
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Vous êtes déjà amis avec cet utilisateur.");
-            }
+	       
+	        ConnectionId connectionId = new ConnectionId(user.getId(), friend.getId());
 
-            Connection connection = new Connection();
-            connection.setId(connectionId1);
-            connection.setUser1(user);
-            connection.setUser2(friend);
+	        if (dbConnectionRepository.existsById(connectionId)) {
+	            log.warn("Ajout ami ignoré : {} a déjà ajouté {}", user.getEmail(), friend.getEmail());
+	            return ResponseEntity.badRequest().body("Vous avez déjà ajouté cet utilisateur.");
+	        }
 
-            dbConnectionRepository.save(connection);
+	        
+	        Connection connection = new Connection();
+	        connection.setId(connectionId);
+	        connection.setUser1(user);
+	        connection.setUser2(friend);
 
-            log.info("Nouvelle connexion ajoutée avec succès entre {} et {}", user.getEmail(), friend.getEmail());
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body("Ami ajouté avec succès.");
+	        dbConnectionRepository.save(connection);
 
-        } catch (RuntimeException e) {
-            log.error("Erreur lors de l'ajout d'ami : {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        } catch (Exception e) {
-            log.error("Erreur inattendue lors de l'ajout d'ami : {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Une erreur est survenue lors de l'ajout de l'ami.");
-        }
+	        log.info("Connexion ajoutée avec succès : {} → {}", user.getEmail(), friend.getEmail());
+	        return ResponseEntity.status(HttpStatus.CREATED).body("Ami ajouté avec succès.");
 
+	    } catch (RuntimeException e) {
+	        log.error("Erreur lors de l'ajout d'ami : {}", e.getMessage());
+	        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+	    } catch (Exception e) {
+	        log.error("Erreur inattendue lors de l'ajout d'ami : {}", e.getMessage(), e);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                .body("Une erreur est survenue lors de l'ajout de l'ami.");
+	    }
 		
 	}
 	

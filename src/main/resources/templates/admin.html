@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Solde Admin</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+	
+	<nav class="navbar">
+		     <div class="logo"><a th:href="@{/user/dashboard}">Pay My Buddy</a></div>
+		    <ul class="nav-links">
+		        <li><a th:href="@{/user/dashboard}" class="nav-item">Transférer</a></li>
+		        <li><a th:href="@{/user/profile}" class="nav-item">Profil</a></li>
+		        <li><a th:href="@{/user/add-friend}" class="nav-item">Ajouter relation</a></li>
+		        <li><a th:href="@{/logout}" class="nav-item logout">Se déconnecter</a></li>
+		    </ul>
+		</nav>
+	
+	
+    <div class="container">
+     
+        <h1>Solde total des commissions</h1>
+        <p class="balance">Le solde du portefeuille admin est : 
+            <strong th:text="${balance} + ' €'"></strong>
+        </p>
+
+    
+		<div class="section">
+        <h1>Liste des Transactions</h1>
+        <div class="transaction-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Expéditeur</th>
+                        <th>Destinataire</th>
+                        <th>Description</th>
+                        <th>Montant (€)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="transaction : ${transactions}">
+                        <td th:text="${transaction.senderEmail}"></td>
+                        <td th:text="${transaction.receiverEmail}"></td>
+                        <td th:text="${transaction.description}"></td>
+                        <td th:text="${transaction.amount}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+		</div>
+    </div>
+	
+	
+	<div class="section">
+	<form th:action="@{/admin/delete-user}" method="post">
+		<div class="form-group">
+	    <input type="email" name="email" placeholder="Email de l'utilisateur à supprimer" required>
+	    <button type="submit">Supprimer l'utilisateur</button>
+		</div>
+	</form>
+	
+
+	<div th:if="${param.success}" style="color: green;" th:text="${param.success}"></div>
+	<div th:if="${param.error}" style="color: red;" th:text="${param.error}"></div>
+	</div>
+</body>
+</html>

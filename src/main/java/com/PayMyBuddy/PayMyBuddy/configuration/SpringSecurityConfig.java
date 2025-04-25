@@ -13,7 +13,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 
 @Configuration
@@ -24,7 +23,7 @@ public class SpringSecurityConfig {
 	private CustomUserDetailsService customUserDetailsService;
 	
 	@Autowired
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    private CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception{
@@ -32,15 +31,25 @@ public class SpringSecurityConfig {
 		  
 				    .csrf(AbstractHttpConfigurer::disable)
 				    .authorizeHttpRequests(auth -> {
-		                auth.requestMatchers("/inscription", "/login", "/api/logout").permitAll();
+		                auth.requestMatchers("/inscription", "/login").permitAll();
+		                auth.requestMatchers("/css/**", "/js/**", "/images/**").permitAll();
 		                auth.requestMatchers("/admin/**").hasRole("ADMIN");
 		                auth.requestMatchers("/user/**").hasAnyRole("USER", "ADMIN");
 		                auth.anyRequest().authenticated();
 		            })
-				    .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-		            .authenticationProvider(authenticationProvider())
-		            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-		  
+				    .formLogin(form -> form
+				            .loginPage("/login")
+				            .successHandler(customAuthenticationSuccessHandler)
+				            .failureUrl("/login?error=true")
+				            .permitAll()
+				        )
+				        .logout(logout -> logout
+				            .logoutUrl("/logout")
+				            .logoutSuccessUrl("/login?logout")
+				            .permitAll()
+				        )
+				        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+				        .authenticationProvider(authenticationProvider());
 
 		        return http.build();
 	    }
