@@ -19,29 +19,29 @@ import com.PayMyBuddy.PayMyBuddy.repository.DBUserRepository;
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
-	 @Autowired
-	    private DBUserRepository dbUserRepository;
+	@Autowired
+	private DBUserRepository dbUserRepository;
 
-	    @Override
-	    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-	    	Optional<User> userOpt = dbUserRepository.findByEmail(email);
-	    	
-	    	User user = userOpt.orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec le nom d'utilisateur : " + email));
-	        
-	        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), getGrantedAuthorities(user.getRole()));
-	    }
+	@Override
+	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+		Optional<User> userOpt = dbUserRepository.findByEmail(email);
 
-	    private List<GrantedAuthority> getGrantedAuthorities(String role) {       
-	        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
-	    }
-	    
-	    public User getAuthenticatedUser() {
-	 
-	        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-	        Optional<User> userOpt = dbUserRepository.findByEmail(email);
+		User user = userOpt.orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + email));
+
+		return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), getGrantedAuthorities(user.getRole()));
+	}
+
+	private List<GrantedAuthority> getGrantedAuthorities(String role) {       
+		return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
+	}
+
+	public User getAuthenticatedUser() {
+
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		Optional<User> userOpt = dbUserRepository.findByEmail(email);
 
 
-	        return userOpt.orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec l'email : " + email));
-	    }
-	
+		return userOpt.orElseThrow(() -> new RuntimeException("User not found with email : " + email));
+	}
+
 }

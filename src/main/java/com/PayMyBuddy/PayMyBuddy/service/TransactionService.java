@@ -25,7 +25,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 @Service
 public class TransactionService {
-	
+
 	@Autowired
 	private AdminWalletRepository adminWalletRepository;
 
@@ -33,198 +33,227 @@ public class TransactionService {
 	private final DBTransactionRepository dbTransactionRepository;
 	private final DBUserRepository dbUserRepository;
 	private final CustomUserDetailsService customUserDetailsService;
-	
+
+
+	/**
+	 * This method allows a user to send money to another user.
+	 * @param transaction stores the information about who receives the money, the description, and the transaction amount.
+	 * @return a success or error message.
+	 */
+
 	@Transactional
 	public ResponseEntity<String> transaction(Transaction transaction) {
 
-		 try {
-	            User user = customUserDetailsService.getAuthenticatedUser();
+		try {
+			User user = customUserDetailsService.getAuthenticatedUser();
 
-	            User friend = dbUserRepository.findByEmail(transaction.getReceiverEmail())
-	                    .orElseThrow(() -> {
-	                        log.error("Transaction échouée : Destinataire {} non trouvé", transaction.getReceiverEmail());
-	                        return new RuntimeException("Utilisateur avec l'email " + transaction.getReceiverEmail() + " non trouvé");
-	                    });
-	            
-	            if (transaction.getAmount() < 0.01 || transaction.getAmount() == 0) {
-	                log.error("Virement banque échoué : Montant incorrect");
-	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                        .body("Montant incorrect.");
-	            }	         
-	            
-	            if (transaction.getAmount() > 500) {
-	                log.error("Virement échoué : Montant trop élevé");
-	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                        .body("Montant trop élevé.");
-	            }
-	            
-	            double fee = transaction.getAmount() * 0.005;
-	            double totalDebit = transaction.getAmount() + fee;
-	            
-	            if (user.getBalance() < totalDebit) {
-	                log.error("Transaction échouée : Solde insuffisant pour {}", user.getEmail());
-	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                        .body("Solde insuffisant pour effectuer la transaction.");
-	            }
+			User friend = dbUserRepository.findByEmail(transaction.getReceiverEmail())
+					.orElseThrow(() -> {
+						log.error("Transaction failed: Recipient {} not found", transaction.getReceiverEmail());
+						return new RuntimeException("User with email " + transaction.getReceiverEmail() + " not found");
+					});
 
-	            user.setBalance(user.getBalance() - totalDebit);
-	            friend.setBalance(friend.getBalance() + transaction.getAmount());
-	            
-	            AdminWallet wallet = adminWalletRepository.findById(1L)
-	                    .orElseGet(() -> {
-	                        AdminWallet w = new AdminWallet();
-	                        w.setId(1L);
-	                        w.setBalance(0);
-	                        return w;
-	                    });
+			if (transaction.getAmount() < 0.01 || transaction.getAmount() == 0.0) {
+				log.error("Bank transfer failed: Invalid amount");
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Invalid amount.");
+			}	         
 
-	            wallet.setBalance(wallet.getBalance() + fee);   
-	
-		Transaction transactions = new Transaction();
-		transactions.setSender(user);
-		transactions.setReceiver(friend);
-		transactions.setDescription(transaction.getDescription());
-		transactions.setAmount(transaction.getAmount());
-	
-		dbTransactionRepository.save(transactions);
-		dbUserRepository.save(user);
-		dbUserRepository.save(friend);
-		adminWalletRepository.save(wallet);
-		
-		log.info("Transaction réussie de {}€ de {} vers {}", transaction.getAmount(), user.getEmail(), friend.getEmail());
-        return ResponseEntity.status(HttpStatus.OK).body("Transaction réalisée avec succès.");
+			if (transaction.getAmount() > 500) {
+				log.error("Transfer failed: Amount too high");
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Amount too high.");
+			}
 
-    } catch (RuntimeException e) {
-        log.error("Erreur lors de la transaction : {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-    } catch (Exception e) {
-        log.error("Erreur inattendue lors de la transaction : {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Une erreur est survenue lors de la transaction.");
-    }
+			double fee = transaction.getAmount() * 0.005;
+			double totalDebit = transaction.getAmount() + fee;
+
+			if (user.getBalance() < totalDebit) {
+				log.error("Transaction failed: Insufficient balance for {}", user.getEmail());
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Insufficient balance to complete the transaction.");
+			}
+
+			user.setBalance(user.getBalance() - totalDebit);
+			friend.setBalance(friend.getBalance() + transaction.getAmount());
+
+			AdminWallet wallet = adminWalletRepository.findById(1L)
+					.orElseGet(() -> {
+						AdminWallet w = new AdminWallet();
+						w.setId(1L);
+						w.setBalance(0);
+						return w;
+					});
+
+			wallet.setBalance(wallet.getBalance() + fee);   
+
+			Transaction transactions = new Transaction();
+			transactions.setSender(user);
+			transactions.setReceiver(friend);
+			transactions.setDescription(transaction.getDescription());
+			transactions.setAmount(transaction.getAmount());
+
+			dbTransactionRepository.save(transactions);
+			dbUserRepository.save(user);
+			dbUserRepository.save(friend);
+			adminWalletRepository.save(wallet);
+
+			log.info("Successful transaction of {}€ from {} to {}", transaction.getAmount(), user.getEmail(), friend.getEmail());
+			return ResponseEntity.status(HttpStatus.OK).body("Transaction successfully completed.");
+
+		} catch (RuntimeException e) {
+			log.error("Error during transaction: {}", e.getMessage());
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+		} catch (Exception e) {
+			log.error("Unexpected error during transaction: {}", e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the transaction.");
+		}
 	}
-	
+
+
+	/**
+	 * This method allows the user to add money to their bank account.
+	 * @param transaction stores the information about who receives the money, the description, and the transaction amount.
+	 * @return a success or error message.
+	 */
+
 	public ResponseEntity<String> addToBankAccount(Transaction transaction) {
-		
-		 try {
-	            User user = customUserDetailsService.getAuthenticatedUser();
-	            
-	            if (transaction.getAmount() < 0.01) {
-	                log.error("Virement banque échoué : Montant incorrect");
-	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                        .body("Montant incorrect.");
-	            }
 
-	            if (user.getBalance() < transaction.getAmount()) {
-	                log.error("Virement banque échoué : Solde insuffisant pour {}", user.getEmail());
-	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                        .body("Solde insuffisant pour effectuer l'opération.");
-	            }
-	            
-	            if (transaction.getAmount() > 500) {
-	                log.error("Virement banque échoué : Montant trop élevé");
-	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                        .body("Montant trop élevé.");
-	            }
+		try {
+			User user = customUserDetailsService.getAuthenticatedUser();
 
-	            user.setBalance(user.getBalance() - transaction.getAmount());          
-		
-		Transaction transactions = new Transaction();
-		transactions.setSender(user);
-		transactions.setReceiver(user);
-		transactions.setDescription("bank transfer");
-		transactions.setAmount(transaction.getAmount());
-		
-		
-		dbTransactionRepository.save(transactions);
-		dbUserRepository.save(user);
-		
-		log.info("Ajout à la banque de {}€ par {}", transaction.getAmount(), user.getEmail());
-        return ResponseEntity.status(HttpStatus.OK).body("Montant ajouté à votre compte bancaire avec succès.");
+			if (transaction.getAmount() < 0.01) {
+				log.error("Bank transfer failed: Invalid amount");
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Invalid amount.");
+			}
 
-    } catch (RuntimeException e) {
-        log.error("Erreur lors de l'ajout banque : {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-    } catch (Exception e) {
-        log.error("Erreur inattendue lors de l'ajout banque : {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Une erreur est survenue lors de l'opération.");
-    }
-		
+			if (user.getBalance() < transaction.getAmount()) {
+				log.error("Bank transfer failed: Insufficient balance for {}", user.getEmail());
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Insufficient balance to complete the operation.");
+			}
+
+			if (transaction.getAmount() > 500) {
+				log.error("Bank transfer failed: Amount too high");
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Amount too high.");
+			}
+
+			user.setBalance(user.getBalance() - transaction.getAmount());          
+
+			Transaction transactions = new Transaction();
+			transactions.setSender(user);
+			transactions.setReceiver(user);
+			transactions.setDescription("bank transfer");
+			transactions.setAmount(transaction.getAmount());
+
+
+			dbTransactionRepository.save(transactions);
+			dbUserRepository.save(user);
+
+			log.info("Bank deposit of {}€ by {}", transaction.getAmount(), user.getEmail());
+			return ResponseEntity.status(HttpStatus.OK).body("Amount successfully added to your bank account.");
+
+		} catch (RuntimeException e) {
+			log.error("Error during bank deposit: {}", e.getMessage());
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+		} catch (Exception e) {
+			log.error("Unexpected error during bank deposit: {}", e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the operation.");
+		}
+
 	}
-	
-	
+
+	/**
+	 * This method allows the user to withdraw money from their bank account and add it to their app balance.
+	 * @param transaction stores the information about who receives the money, the description, and the transaction amount.
+	 * @return a success or error message.
+	 */
+
 	public ResponseEntity<String> withdrawToBankAccount(Transaction transaction) {
-		
-		 try {
-	            User user = customUserDetailsService.getAuthenticatedUser();
-	            
-	            if (transaction.getAmount() < 0.01) {
-	                log.error("Retrait banque échoué : Montant incorrect");
-	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                        .body("Montant incorrect.");
-	            }
 
-	            if (transaction.getAmount() > 500) {
-	                log.error("Retrait banque échoué : Montant trop élevé");
-	                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-	                        .body("Montant trop élevé.");
-	            }
+		try {
+			User user = customUserDetailsService.getAuthenticatedUser();
 
-	            user.setBalance(user.getBalance() + transaction.getAmount());
-	          
-		
-		Transaction transactions = new Transaction();
-		transactions.setSender(user);
-		transactions.setReceiver(user);
-		transactions.setDescription("bank withdrawal");
-		transactions.setAmount(transaction.getAmount());
-		
-		
-		dbTransactionRepository.save(transactions);
-		dbUserRepository.save(user);
-		
-		
-		 log.info("Retrait de {}€ de la banque pour {}", transaction.getAmount(), user.getEmail());
-         return ResponseEntity.status(HttpStatus.OK).body("Retrait effectué avec succès.");
+			if (transaction.getAmount() < 0.01) {
+				log.error("Bank withdrawal failed: Invalid amount");
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Invalid amount.");
+			}
 
-     } catch (RuntimeException e) {
-         log.error("Erreur lors du retrait banque : {}", e.getMessage());
-         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-     } catch (Exception e) {
-         log.error("Erreur inattendue lors du retrait banque : {}", e.getMessage());
-         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Une erreur est survenue lors de l'opération.");
-     }
-		
+			if (transaction.getAmount() > 500) {
+				log.error("Bank withdrawal failed: Amount too high");
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+						.body("Amount too high.");
+			}
+
+			user.setBalance(user.getBalance() + transaction.getAmount());
+
+
+			Transaction transactions = new Transaction();
+			transactions.setSender(user);
+			transactions.setReceiver(user);
+			transactions.setDescription("bank withdrawal");
+			transactions.setAmount(transaction.getAmount());
+
+
+			dbTransactionRepository.save(transactions);
+			dbUserRepository.save(user);
+
+
+			log.info("Bank withdrawal of {}€ for {}", transaction.getAmount(), user.getEmail());
+			return ResponseEntity.status(HttpStatus.OK).body("Withdrawal successfully completed.");
+
+		} catch (RuntimeException e) {
+			log.error("Error during bank withdrawal: {}", e.getMessage());
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+		} catch (Exception e) {
+			log.error("Unexpected error during bank withdrawal: {}", e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the operation.");
+		}
+
 	}
-	
+
+
+	/**
+	 * This method retrieves the list of transactions for a given user.
+	 * @param user stores the user's various information (username, email)
+	 * @return the list of transactions.
+	 */
+
 	public List<TransactionDTO> getTransactionsByUser(User user) {
 		Iterable<Transaction> transactions = dbTransactionRepository.findBySenderOrReceiver(user, user);
-	    List<TransactionDTO> transactionDTOs = new ArrayList<>();
+		List<TransactionDTO> transactionDTOs = new ArrayList<>();
 
-	    for (Transaction t : transactions) {
-	        transactionDTOs.add(new TransactionDTO(
-	                t.getSender().getUsername(),
-	                t.getReceiver().getUsername(),
-	                t.getDescription(),
-	                t.getAmount()));
-	    }
+		for (Transaction t : transactions) {
+			transactionDTOs.add(new TransactionDTO(
+					t.getSender().getUsername(),
+					t.getReceiver().getUsername(),
+					t.getDescription(),
+					t.getAmount()));
+		}
 
-	    return transactionDTOs;
+		return transactionDTOs;
 	}
-	
+
+	/**
+	 * This method retrieves the list of all transactions in the app (Admin only).
+	 * @return the list of transactions.
+	 */
+
 	public List<TransactionDTO> getAllTransactions() {
-		 Iterable<Transaction> transactions = dbTransactionRepository.findAll();
-		    List<TransactionDTO> transactionDTOs = new ArrayList<>();
+		Iterable<Transaction> transactions = dbTransactionRepository.findAll();
+		List<TransactionDTO> transactionDTOs = new ArrayList<>();
 
-		    for (Transaction t : transactions) {
-		        transactionDTOs.add(new TransactionDTO(
-		                t.getSender().getUsername(),
-		                t.getReceiver().getUsername(),
-		                t.getDescription(),
-		                t.getAmount()));
-		    }
+		for (Transaction t : transactions) {
+			transactionDTOs.add(new TransactionDTO(
+					t.getSender().getUsername(),
+					t.getReceiver().getUsername(),
+					t.getDescription(),
+					t.getAmount()));
+		}
 
-		    return transactionDTOs;
+		return transactionDTOs;
 	}
-	
-	
 }

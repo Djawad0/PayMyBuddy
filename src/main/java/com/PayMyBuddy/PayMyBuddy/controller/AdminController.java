@@ -36,7 +36,7 @@ public class AdminController {
 	public String showAllTransactions(Model model) {
 		List<TransactionDTO> transactions = transactionService.getAllTransactions();
 		AdminWallet wallet = adminWalletRepository.findById(1L)
-				.orElseThrow(() -> new RuntimeException("AdminWallet introuvable"));
+				.orElseThrow(() -> new RuntimeException("AdminWallet not found"));
 		model.addAttribute("balance", wallet.getBalance());
 		model.addAttribute("transactions", transactions);
 

@@ -9,10 +9,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AdminWallet {
-	
-	@Id
-    private Long id = 1L; 
 
-    private double balance;
+	@Id
+	private Long id = 1L; 
+
+	private double balance;
 
 }

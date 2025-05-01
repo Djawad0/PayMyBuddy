@@ -19,15 +19,15 @@ import lombok.Setter;
 @Table(name = "connection")
 public class Connection {
 
-	 @EmbeddedId
-	    private ConnectionId id;
-	 
-	
-	 @ManyToOne
-	    @JoinColumn(name = "user_id_1", insertable = false, updatable = false)
-	    private User user1;
+	@EmbeddedId
+	private ConnectionId id;
 
-	    @ManyToOne
-	    @JoinColumn(name = "user_id_2", insertable = false, updatable = false)
-	    private User user2;
+
+	@ManyToOne
+	@JoinColumn(name = "user_id_1", insertable = false, updatable = false)
+	private User user1;
+
+	@ManyToOne
+	@JoinColumn(name = "user_id_2", insertable = false, updatable = false)
+	private User user2;
 }

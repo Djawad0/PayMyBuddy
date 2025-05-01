@@ -14,10 +14,10 @@ public class LoginController {
 			Model model) {
 
 		if (error != null) {
-			model.addAttribute("error", "Email ou mot de passe invalide.");
+			model.addAttribute("error", "Invalid email or password.");
 		}
 		if (logout != null) {
-			model.addAttribute("message", "Vous avez été déconnecté avec succès.");
+			model.addAttribute("message", "You have been successfully logged out.");
 		}
 		return "login"; 
 	}

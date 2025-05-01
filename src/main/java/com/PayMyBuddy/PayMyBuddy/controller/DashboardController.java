@@ -19,20 +19,20 @@ public class DashboardController {
 
 	private final CustomUserDetailsService customUserDetailsService;
 	private final TransactionService transactionService;    
-	
+
 
 	@Autowired
 	public DashboardController(TransactionService transactionService, CustomUserDetailsService customUserDetailsService) {       
 		this.transactionService = transactionService;
 		this.customUserDetailsService = customUserDetailsService;	
-	
+
 	}
 
 	@GetMapping("/user/dashboard")
 	public String dashboard(Model model) {
 
 		User user = customUserDetailsService.getAuthenticatedUser();
-	
+
 		model.addAttribute("user", user);
 		model.addAttribute("friends", user.getConnections());
 		model.addAttribute("transaction", new TransactionDTO(user.getEmail(), "", "", 0.0));

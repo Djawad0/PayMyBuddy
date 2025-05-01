@@ -22,25 +22,25 @@ import lombok.Setter;
 @Table(name = "transaction")
 public class Transaction {
 
-	 @Id
-	    @GeneratedValue(strategy = GenerationType.IDENTITY)
-	    private int id;
-	    
-	    @ManyToOne
-	    @JoinColumn(name = "sender_id", nullable = false)
-	    private User sender;
-	    
-	    @ManyToOne
-	    @JoinColumn(name = "receiver_id", nullable = false)
-	    private User receiver;
-	    
-	    @Column(name = "description")
-	    private String description;
-	    
-	    @Column(name = "amount")
-	    private Double amount;
-	    
-	    @Transient  
-	    private String receiverEmail;
-	
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private int id;
+
+	@ManyToOne
+	@JoinColumn(name = "sender_id", nullable = false)
+	private User sender;
+
+	@ManyToOne
+	@JoinColumn(name = "receiver_id", nullable = false)
+	private User receiver;
+
+	@Column(name = "description")
+	private String description;
+
+	@Column(name = "amount")
+	private Double amount;
+
+	@Transient  
+	private String receiverEmail;
+
 }

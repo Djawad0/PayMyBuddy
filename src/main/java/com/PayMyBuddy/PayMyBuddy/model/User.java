@@ -42,9 +42,9 @@ public class User {
 
 	@Column(name = "role")
 	private String role;
-	
+
 	@Column(name = "balance")
-	private Double balance;
+	private Double balance = 0.0;
 
 	@OneToMany(mappedBy = "sender", cascade = CascadeType.ALL)
 	private List<Transaction> sentTransactions;

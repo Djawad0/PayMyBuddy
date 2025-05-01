@@ -25,82 +25,82 @@ import com.PayMyBuddy.PayMyBuddy.service.UserService;
 @RestController
 @RequestMapping("/api")
 public class UserController {
-		
+
 	private final UserService userService;	
 	private final AdminWalletRepository adminWalletRepository;
-    private final CustomUserDetailsService customUserDetailsService;
+	private final CustomUserDetailsService customUserDetailsService;
 	private final ConnectionService connectionService;		
 	private final TransactionService transactionService;
-	
+
 	@Autowired
-    public UserController(UserService userService, ConnectionService connectionService, TransactionService transactionService,
-    		AdminWalletRepository adminWalletRepository, CustomUserDetailsService customUserDetailsService) {
-        this.userService = userService;
-        this.connectionService = connectionService;
-        this.transactionService = transactionService;
-        this.adminWalletRepository = adminWalletRepository;
-        this.customUserDetailsService = customUserDetailsService;
-    }
-	
+	public UserController(UserService userService, ConnectionService connectionService, TransactionService transactionService,
+			AdminWalletRepository adminWalletRepository, CustomUserDetailsService customUserDetailsService) {
+		this.userService = userService;
+		this.connectionService = connectionService;
+		this.transactionService = transactionService;
+		this.adminWalletRepository = adminWalletRepository;
+		this.customUserDetailsService = customUserDetailsService;
+	}
+
 	@PostMapping("/inscription")
-    public ResponseEntity<String> inscription(@RequestBody User user) {
+	public ResponseEntity<String> inscription(@RequestBody User user) {
 		return userService.inscription(user);       
-    }
-    
-    @PostMapping("/user/connection")
-    public ResponseEntity<String> createConnection(@RequestBody EmailRequest request) {
-    	return connectionService.createConnection(request.getEmail());
-    }
-    
-    @PostMapping("/user/transaction")
-    public ResponseEntity<String> transaction(@RequestBody Transaction transaction) {
-    	return transactionService.transaction(transaction);
-    }
-    
-    @GetMapping("/user/transactions")
-    public ResponseEntity<List<TransactionDTO>> getUserTransactions() {
-        User user = customUserDetailsService.getAuthenticatedUser();
-        return ResponseEntity.ok(transactionService.getTransactionsByUser(user));
-    }
-    
-    @GetMapping("/admin/transactions")
-    public ResponseEntity<List<TransactionDTO>> getAllTransactions() {
-         return ResponseEntity.ok(transactionService.getAllTransactions());
-    }
-    
-    @GetMapping("/user/friends")
-    public ResponseEntity<List<String>> getUserConnections() {
-    	User user = customUserDetailsService.getAuthenticatedUser();
-        List<String> connections = new ArrayList<>();
+	}
 
-        for (User friend : user.getConnections()) {
-            connections.add(friend.getUsername());
-        }
+	@PostMapping("/user/connection")
+	public ResponseEntity<String> createConnection(@RequestBody EmailRequest request) {
+		return connectionService.createConnection(request.getEmail());
+	}
 
-        return ResponseEntity.ok(connections);
-    }
-    
-    @PostMapping("/user/update")
-    public ResponseEntity<String> updateUser(@RequestBody UpdateUserRequest updateRequest) {
-    	return userService.updateUser(updateRequest);     
-    }
-    
-    @PostMapping("/user/addToBankAccount")
-    public ResponseEntity<String> addToBankAccount(@RequestBody Transaction transaction) {
-    	return transactionService.addToBankAccount(transaction);     
-    }
-    
-    @PostMapping("/user/withdrawToBankAccount")
-    public ResponseEntity<String> withdrawToBankAccount(@RequestBody Transaction transaction) {
-    	return transactionService.withdrawToBankAccount(transaction);     
-    }
-    
-    @GetMapping("/admin/wallet")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> getWalletBalance() {
-        AdminWallet wallet = adminWalletRepository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("AdminWallet introuvable"));
-        return ResponseEntity.ok("Solde total des commissions : " + wallet.getBalance() + "€");
-    }
-   
+	@PostMapping("/user/transaction")
+	public ResponseEntity<String> transaction(@RequestBody Transaction transaction) {
+		return transactionService.transaction(transaction);
+	}
+
+	@GetMapping("/user/transactions")
+	public ResponseEntity<List<TransactionDTO>> getUserTransactions() {
+		User user = customUserDetailsService.getAuthenticatedUser();
+		return ResponseEntity.ok(transactionService.getTransactionsByUser(user));
+	}
+
+	@GetMapping("/admin/transactions")
+	public ResponseEntity<List<TransactionDTO>> getAllTransactions() {
+		return ResponseEntity.ok(transactionService.getAllTransactions());
+	}
+
+	@GetMapping("/user/friends")
+	public ResponseEntity<List<String>> getUserConnections() {
+		User user = customUserDetailsService.getAuthenticatedUser();
+		List<String> connections = new ArrayList<>();
+
+		for (User friend : user.getConnections()) {
+			connections.add(friend.getUsername());
+		}
+
+		return ResponseEntity.ok(connections);
+	}
+
+	@PostMapping("/user/update")
+	public ResponseEntity<String> updateUser(@RequestBody UpdateUserRequest updateRequest) {
+		return userService.updateUser(updateRequest);     
+	}
+
+	@PostMapping("/user/addToBankAccount")
+	public ResponseEntity<String> addToBankAccount(@RequestBody Transaction transaction) {
+		return transactionService.addToBankAccount(transaction);     
+	}
+
+	@PostMapping("/user/withdrawToBankAccount")
+	public ResponseEntity<String> withdrawToBankAccount(@RequestBody Transaction transaction) {
+		return transactionService.withdrawToBankAccount(transaction);     
+	}
+
+	@GetMapping("/admin/wallet")
+	@PreAuthorize("hasRole('ADMIN')")
+	public ResponseEntity<String> getWalletBalance() {
+		AdminWallet wallet = adminWalletRepository.findById(1L)
+				.orElseThrow(() -> new RuntimeException("AdminWallet not found"));
+		return ResponseEntity.ok("Total commission balance: " + wallet.getBalance() + "€");
+	}
+
 }

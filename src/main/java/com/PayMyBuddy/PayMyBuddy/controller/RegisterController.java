@@ -34,7 +34,7 @@ public class RegisterController {
 	public String inscription(@RequestParam String confirmNewPassword, User user, Model model) {
 
 		if(!user.getPassword().equals(confirmNewPassword)) {
-			model.addAttribute("errorPassword", "Les mots de passe ne correspondent pas.");
+			model.addAttribute("errorPassword", "Passwords do not match.");
 			return "register";
 		}
 

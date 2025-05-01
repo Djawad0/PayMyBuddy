@@ -52,7 +52,7 @@ public class ProfileController {
 			Model model) {
 
 		if (newPassword != null && !newPassword.isBlank() && !newPassword.equals(confirmNewPassword)) {
-			model.addAttribute("errorPassword", "Les mots de passe ne correspondent pas.");
+			model.addAttribute("errorPassword", "Passwords do not match.");
 			return "profile";
 		}
 
@@ -65,7 +65,7 @@ public class ProfileController {
 
 		updateRequest.setUsername(user.getUsername());	 
 		if (!user.getEmail().contains("@") || !user.getEmail().contains(".")) {       
-			model.addAttribute("errorEmail", " Email invalide.");
+			model.addAttribute("errorEmail", "Invalid email.");
 			return "profile";
 		}
 		else {
@@ -73,7 +73,7 @@ public class ProfileController {
 		}    	   	    
 		updateRequest.setPassword(newPassword);
 		updateRequest.setOldPassword(currentPassword);
-		
+
 
 
 
@@ -81,10 +81,10 @@ public class ProfileController {
 
 		if (response.getStatusCode() == HttpStatus.OK) {
 			try {
-				
+
 				UserDetails updatedUserDetails = customUserDetailsService.loadUserByUsername(user.getEmail());
 
-				
+
 				Authentication newAuth = new UsernamePasswordAuthenticationToken(
 						updatedUserDetails,
 						updatedUserDetails.getPassword(),
@@ -98,7 +98,7 @@ public class ProfileController {
 				return "profile";
 
 			} catch (UsernameNotFoundException e) {
-				model.addAttribute("error", "Utilisateur mis à jour introuvable.");
+				model.addAttribute("error", "Updated user not found.");
 				return "profile";
 			}
 		} else {
@@ -116,7 +116,7 @@ public class ProfileController {
 			transaction.setSender(user);
 			transaction.setReceiver(user);
 			transaction.setAmount(amount);
-			transaction.setDescription("Dépôt d'argent sur le compte bancaire");
+			transaction.setDescription("Deposit to bank account");
 
 			ResponseEntity<String> response =  transactionService.addToBankAccount(transaction);
 
@@ -128,7 +128,7 @@ public class ProfileController {
 
 
 		} catch (Exception e) {
-			model.addAttribute("errorDepositMoney", "Erreur lors du dépôt.");
+			model.addAttribute("errorDepositMoney", "Error during deposit.");
 			return "profile";  
 		}
 	}
@@ -142,7 +142,7 @@ public class ProfileController {
 			transaction.setSender(user);
 			transaction.setReceiver(user);
 			transaction.setAmount(amount);
-			transaction.setDescription("Retrait bancaire");
+			transaction.setDescription("Bank withdrawal");
 
 			ResponseEntity<String> response =  transactionService.withdrawToBankAccount(transaction);
 
@@ -153,7 +153,7 @@ public class ProfileController {
 			}
 
 		} catch (Exception e) {
-			model.addAttribute("errorWithdrawMoney", "Erreur lors du retrait.");
+			model.addAttribute("errorWithdrawMoney", "Error during withdrawal.");
 			return "profile";  
 		}
 	}
