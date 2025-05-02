@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Mon Dashboard</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+	
+	<nav class="navbar">
+	    <div class="logo"><a th:href="@{/user/dashboard}">Pay My Buddy</a></div>
+	    <ul class="nav-links">
+	        <li><a th:href="@{/user/dashboard}" class="nav-item">Transférer</a></li>
+	        <li><a th:href="@{/user/profile}" class="nav-item">Profil</a></li>
+	        <li><a th:href="@{/user/add-friend}" class="nav-item">Ajouter relation</a></li>
+	        <li><a th:href="@{/logout}" class="nav-item logout">Se déconnecter</a></li>		
+	    </ul>
+	</nav>
+	
+	<div th:if="${roles != null}">
+	    <p>Rôles de l'utilisateur :</p>
+	    <ul>
+	        <li th:each="role : ${roles}" th:text="${role.authority}"></li>
+	    </ul>
+	</div>
+	
+<div class="container">
+    <h2>Bienvenue, <span th:text="${user.username}">Utilisateur</span> </h2>
+
+    <div class="section">
+        <h3>Solde actuel :</h3>
+        <p class="balance"><strong th:text="${user.balance} + ' €'">0 €</strong></p>
+    </div>
+
+    <div class="section">
+        <h3>Envoyer de l'argent à un ami</h3>
+        <form th:action="@{/user/transaction}" method="post" th:object="${transaction}" class="transfer-form">
+            <input type="hidden" th:field="*{senderEmail}" />
+
+            <div class="form-group">
+                <label>Destinataire :</label>
+                <select th:field="*{receiverEmail}" required>
+                    <option disabled selected value="">-- Choisir un ami --</option>
+                    <option th:each="friend : ${friends}"
+                            th:value="${friend.email}"
+                            th:text="${friend.username + ' (' + friend.email + ')'}">
+                    </option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Montant (€) :</label>
+                <input type="number" step="0.01" min="0.01" th:field="*{amount}" required>
+            </div>
+            <div class="form-group">
+                <label>Description :</label>
+                <input type="text" th:field="*{description}" placeholder="Ex: Remboursement resto">
+            </div>
+            <button type="submit">Envoyer</button>
+        </form>
+		<div th:if="${param.success}" style="color: green;" th:text="${param.success}"></div>
+			<div th:if="${param.error}" style="color: red;" th:text="${param.error}"></div>
+    </div>
+	
+	
+	<div class="section">
+	        <h3>Mes transactions</h3>
+	        <div class="transaction-table">
+	            <table>
+	                <thead>
+	                    <tr>
+	                        <th>Relation</th>
+	                        <th>Description</th>
+	                        <th>Montant</th>
+	                    </tr>
+	                </thead>
+	                <tbody>
+	                    <tr th:each="transaction : ${transactions}">
+	                        <td th:text="${transaction.receiverEmail}">Receiver</td>
+	                        <td th:text="${transaction.description}">description</td>
+	                        <td th:text="${transaction.amount}">100</td>
+	                    </tr>
+	                </tbody>
+	            </table>
+	        </div>
+	    </div>
+</div>
+</body>
+</html>
