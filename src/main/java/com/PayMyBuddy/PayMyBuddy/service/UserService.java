@@ -3,14 +3,13 @@ package com.PayMyBuddy.PayMyBuddy.service;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.PayMyBuddy.PayMyBuddy.dto.UpdateUserRequest;
 import com.PayMyBuddy.PayMyBuddy.model.User;
 import com.PayMyBuddy.PayMyBuddy.repository.DBUserRepository;
 import lombok.AllArgsConstructor;
+import java.util.NoSuchElementException;
 
 @AllArgsConstructor
 @Service
@@ -27,25 +26,24 @@ public class UserService {
 	 * @return an error or success message.
 	 */
 
-	public ResponseEntity<String> inscription(User user) {   
+	public String inscription(User user) {   
 
-		try {
 			if (!user.getEmail().contains("@") || !user.getEmail().contains(".")) {
 				log.error("Registration failed: Invalid email {}", user.getEmail());
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid email address");
+				throw new IllegalArgumentException("Invalid email address");
 			}
 
 			Optional<User> userEmail = userRepository.findByEmail(user.getEmail());
 			if (userEmail.isPresent()) {
 				log.error("Registration failed: Email already in use {}", user.getEmail());
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is already in use");
+				throw new IllegalStateException("Email is already in use");
 			}
 
 			Optional<User> userUsername = userRepository.findByUsername(user.getUsername());
 
 			if (userUsername.isPresent()) {
 				log.error("Registration failed: Username already in use {}", user.getUsername());
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username is already in use");
+				throw new IllegalStateException("Username is already in use");
 			}
 
 			String password = user.getPassword();
@@ -53,8 +51,7 @@ public class UserService {
 
 			if (password == null || !password.matches(passwordPattern)) {
 				log.error("Registration failed: Password does not meet requirements for {}", user.getEmail());
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-						.body("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a digit, and a special character");
+				throw new IllegalArgumentException("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a digit, and a special character");
 			}
 
 
@@ -65,12 +62,8 @@ public class UserService {
 			userRepository.save(user);
 
 			log.info("New user successfully registered : {}", user.getEmail());
-			return ResponseEntity.status(HttpStatus.CREATED).body("Registration successful");
+			 return "Registration successful";
 
-		} catch (Exception e) {
-			log.error("Erreur lors de l'inscription : {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during registration");
-		}
 	}
 
 	/**
@@ -79,15 +72,17 @@ public class UserService {
 	 * @return an error or success message.
 	 */
 
-	public ResponseEntity<String> updateUser( UpdateUserRequest updateRequest) {
+	public String updateUser( UpdateUserRequest updateRequest) {
 
-		try {
 			User user = userRepository.findByEmail(updateRequest.getOriginalEmail())
-					.orElseThrow(() -> new RuntimeException("User not found with email : " + updateRequest.getOriginalEmail()));
+					.orElseThrow(() -> {
+						log.error("Update failed: User not found with email {}", updateRequest.getOriginalEmail());
+						return new NoSuchElementException("User not found with email : " + updateRequest.getOriginalEmail());
+					});
 
 			if (!passwordEncoder.matches(updateRequest.getOldPassword(), user.getPassword())) {
 				log.error("Update failed: Incorrect old password for {}", user.getEmail());
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Incorrect old password");
+				throw new SecurityException("Incorrect old password");
 			}
 
 			if (updateRequest.getUsername() != null && !updateRequest.getUsername().isBlank() && !updateRequest.getUsername().equals(user.getUsername())) {
@@ -95,7 +90,7 @@ public class UserService {
 
 				if (userUsername.isPresent()) {
 					log.error("Update failed: Username already in use {}", updateRequest.getUsername());
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username is already in use");
+					throw new IllegalStateException("Username is already in use");
 				}
 				else {
 					user.setUsername(updateRequest.getUsername());
@@ -108,7 +103,7 @@ public class UserService {
 				Optional<User> userEmail = userRepository.findByEmail(updateRequest.getEmail());
 				if (userEmail.isPresent()) {
 					log.error("Update failed: Email already in use {}", updateRequest.getEmail());
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email is already in use");
+					throw new IllegalStateException("Email is already in use");
 				}
 				else {
 					user.setEmail(updateRequest.getEmail());
@@ -121,8 +116,7 @@ public class UserService {
 
 				if (!password.matches(passwordPattern)) {
 					log.error("Update failed: Password does not meet requirements for {}", user.getEmail());
-					return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-							.body("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a digit, and a special character");
+					throw new IllegalArgumentException("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a digit, and a special character");
 				}
 
 				else {
@@ -133,15 +127,8 @@ public class UserService {
 			userRepository.save(user);
 
 			log.info("User successfully updated: {}", user.getEmail());
-			return ResponseEntity.ok("User information updated successfully");
+			return "User information updated successfully";
 
-		} catch (RuntimeException e) {
-			log.error("User update error : {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-		} catch (Exception e) {
-			log.error("Unexpected error during user update : {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the update");
-		}
 	}
 
 
@@ -151,25 +138,18 @@ public class UserService {
 	 * @return an error or success message.
 	 */
 
-	public ResponseEntity<String> deleteUserByEmail(String email) {
-		try {
-			Optional<User> userOpt = userRepository.findByEmail(email);
+	public String deleteUserByEmail(String email) {
+			User user = userRepository.findByEmail(email)
+					.orElseThrow(() -> {
+						log.error("Deletion failed: User not found with email {}", email);
+						return new NoSuchElementException("User not found with email : " + email);
+					});
 
-			if (userOpt.isEmpty()) {
-				return ResponseEntity.status(HttpStatus.NOT_FOUND)
-						.body("User not found with email : " + email);
-			}
-
-			userRepository.delete(userOpt.get());
+			userRepository.delete(user);
 
 			log.info("User deleted by an administrator : {}", email);
-			return ResponseEntity.ok("User successfully deleted");
-
-		} catch (Exception e) {
-			log.error("Error deleting user : {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-					.body("Error occurred while deleting the user account");
-		}
+			return "User successfully deleted";
+		
 	}
 
 

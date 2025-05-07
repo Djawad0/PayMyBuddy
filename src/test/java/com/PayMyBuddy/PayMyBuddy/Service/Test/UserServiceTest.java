@@ -1,13 +1,15 @@
 package com.PayMyBuddy.PayMyBuddy.Service.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import com.PayMyBuddy.PayMyBuddy.dto.UpdateUserRequest;
 import com.PayMyBuddy.PayMyBuddy.model.User;
@@ -37,9 +39,7 @@ public class UserServiceTest {
 
 		when(user.getEmail()).thenReturn("testexemple.com");
 
-		ResponseEntity<String> response = userService.inscription(user);
-
-		assertEquals("Invalid email address", response.getBody());
+		assertThrows(IllegalArgumentException.class, () -> userService.inscription(user));
 	}
 
 	@Test
@@ -47,9 +47,7 @@ public class UserServiceTest {
 
 		when(user.getEmail()).thenReturn("test@exemplecom");
 
-		ResponseEntity<String> response = userService.inscription(user);
-
-		assertEquals("Invalid email address", response.getBody());
+		 assertThrows(IllegalArgumentException.class, () -> userService.inscription(user));
 	}
 
 	@Test
@@ -59,9 +57,7 @@ public class UserServiceTest {
 		when(userRepository.findByEmail("test@example.com"))
 		.thenReturn(Optional.of(user));
 
-		ResponseEntity<String> response = userService.inscription(user);
-
-		assertEquals("Email is already in use", response.getBody());
+		assertThrows(IllegalStateException.class, () -> userService.inscription(user));
 	}
 
 	@Test
@@ -75,9 +71,7 @@ public class UserServiceTest {
 		when(userRepository.findByUsername("test"))
 		.thenReturn(Optional.of(user));
 
-		ResponseEntity<String> response = userService.inscription(user);
-
-		assertEquals("Username is already in use", response.getBody());
+		assertThrows(IllegalStateException.class, () -> userService.inscription(user));
 	}
 
 	@Test
@@ -92,10 +86,7 @@ public class UserServiceTest {
 
 		when(user.getPassword()).thenReturn(null);
 
-		ResponseEntity<String> response = userService.inscription(user);
-
-		assertEquals("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a digit, and a special character",
-				response.getBody());
+		assertThrows(IllegalArgumentException.class, () -> userService.inscription(user));
 	}
 
 	@Test
@@ -110,22 +101,9 @@ public class UserServiceTest {
 
 		when(user.getPassword()).thenReturn("1234");
 
-		ResponseEntity<String> response = userService.inscription(user);
-
-		assertEquals("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a digit, and a special character",
-				response.getBody());
+		assertThrows(IllegalArgumentException.class, () -> userService.inscription(user));
 	}
 
-
-	@Test
-	void testInscriptionErreur() {
-
-		when(user.getEmail()).thenReturn(null);
-
-		ResponseEntity<String> response = userService.inscription(user);
-
-		assertEquals("An error occurred during registration",	response.getBody());
-	}
 
 	@Test
 	void testInscriptionReussie() {
@@ -141,9 +119,8 @@ public class UserServiceTest {
 
 		when(passwordEncoder.encode("1234Ab//")).thenReturn("encodedPassword");
 
-		ResponseEntity<String> response = userService.inscription(user);
-
-		assertEquals("Registration successful",	response.getBody());
+		 String result = userService.inscription(user);
+	        assertEquals("Registration successful", result);
 	}
 
 	@Test
@@ -151,9 +128,7 @@ public class UserServiceTest {
 
 		when(userRepository.findByEmail("test@example.com")).thenReturn(null);
 
-		ResponseEntity<String> response = userService.updateUser(updateRequest);
-
-		assertEquals("User not found with email : null",	response.getBody());
+		assertThrows(NoSuchElementException.class, () -> userService.updateUser(updateRequest));
 	}
 
 	@Test
@@ -166,9 +141,7 @@ public class UserServiceTest {
 
 		when(passwordEncoder.matches("wrongOldPassword", "encodedOldPassword")).thenReturn(false);
 
-		ResponseEntity<String> response = userService.updateUser(updateRequest);
-
-		assertEquals("Incorrect old password", response.getBody());
+		assertThrows(SecurityException.class, () -> userService.updateUser(updateRequest));
 	}
 
 	@Test
@@ -190,9 +163,7 @@ public class UserServiceTest {
 		when(userRepository.findByUsername("test"))
 		.thenReturn(Optional.of(user));
 
-		ResponseEntity<String> response = userService.updateUser(updateRequest);
-
-		assertEquals("Username is already in use", response.getBody());
+		assertThrows(IllegalStateException.class, () -> userService.updateUser(updateRequest));
 	}
 
 	@Test
@@ -218,9 +189,7 @@ public class UserServiceTest {
 		when(userRepository.findByEmail("test2@example.com"))
 		.thenReturn(Optional.of(user));
 
-		ResponseEntity<String> response = userService.updateUser(updateRequest);
-
-		assertEquals("Email is already in use", response.getBody());
+		 assertThrows(IllegalStateException.class, () -> userService.updateUser(updateRequest));
 	}
 
 	@Test
@@ -247,10 +216,7 @@ public class UserServiceTest {
 		when(userRepository.findByEmail("test2@example.com"))
 		.thenReturn(Optional.empty());		    		  
 
-		ResponseEntity<String> response = userService.updateUser(updateRequest);
-
-		assertEquals("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a digit, and a special character",
-				response.getBody());
+		assertThrows(IllegalArgumentException.class, () -> userService.updateUser(updateRequest));
 	}
 
 
@@ -278,9 +244,8 @@ public class UserServiceTest {
 		when(userRepository.findByEmail("test2@example.com"))
 		.thenReturn(Optional.empty());		    		  
 
-		ResponseEntity<String> response = userService.updateUser(updateRequest);
-
-		assertEquals("User information updated successfully", response.getBody());
+		String result = userService.updateUser(updateRequest);
+        assertEquals("User information updated successfully", result);
 	}
 
 	@Test
@@ -288,29 +253,17 @@ public class UserServiceTest {
 
 		when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());
 
-		ResponseEntity<String> response = userService.deleteUserByEmail("test@example.com");
-
-		assertEquals("User not found with email : test@example.com", response.getBody());
+		assertThrows(NoSuchElementException.class, () -> userService.deleteUserByEmail("test@example.com"));
 	}
 
-	@Test
-	void testDeleteUserByEmailErreur() {
-
-		when(userRepository.findByEmail("test@example.com")).thenThrow(new RuntimeException("Database error"));
-
-		ResponseEntity<String> response = userService.deleteUserByEmail("test@example.com");
-
-		assertEquals("Error occurred while deleting the user account", response.getBody());
-	}
 
 	@Test
 	void testDeleteUserByEmailUtilisateurSupprimerAvecSuccès() {
 
 		when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
-		ResponseEntity<String> response = userService.deleteUserByEmail("test@example.com");
-
-		assertEquals("User successfully deleted", response.getBody());
+		String result = userService.deleteUserByEmail("test@example.com");
+        assertEquals("User successfully deleted", result);
 	}
 
 

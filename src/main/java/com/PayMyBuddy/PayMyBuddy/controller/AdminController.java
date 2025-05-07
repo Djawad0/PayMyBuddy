@@ -1,10 +1,8 @@
 package com.PayMyBuddy.PayMyBuddy.controller;
 
 import java.util.List;
-
+import java.util.NoSuchElementException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -46,16 +44,14 @@ public class AdminController {
 	@PreAuthorize("hasRole('ADMIN')")
 	@PostMapping("/admin/delete-user")
 	public String deleteUserByAdmin(@RequestParam String email, Model model) {
-		ResponseEntity<String> response = userService.deleteUserByEmail(email);
-
-		if (response.getStatusCode() == HttpStatus.OK) {
-
-			return "redirect:/admin/dashboard?success=" + response.getBody();
-		} else {
-			return "redirect:/admin/dashboard?error=" + response.getBody(); 
-		}
-
-
+		 try {
+	            String result = userService.deleteUserByEmail(email);
+	            return "redirect:/admin/dashboard?success=" + result;
+	        } catch (NoSuchElementException e) {
+	            return "redirect:/admin/dashboard?error=" + e.getMessage();
+	        } catch (Exception e) {
+	            return "redirect:/admin/dashboard?error=Error when deleting user.";
+	        }
 	}
 
 }

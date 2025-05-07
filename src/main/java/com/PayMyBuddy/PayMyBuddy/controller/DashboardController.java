@@ -1,8 +1,8 @@
 package com.PayMyBuddy.PayMyBuddy.controller;
 
+import java.util.NoSuchElementException;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,13 +44,15 @@ public class DashboardController {
 	@PostMapping("/user/transaction")
 	public String transaction(Transaction transaction, Model model) {
 
-		ResponseEntity<String> response = transactionService.transaction(transaction);
-
-		if (response.getStatusCode() == HttpStatus.OK) {
-
-			return "redirect:/user/dashboard?success=" + response.getBody();
-		} else {
-			return "redirect:/user/dashboard?error=" + response.getBody(); 
-		}    	
+		try {
+	        String result = transactionService.transaction(transaction);
+	        return "redirect:/user/dashboard?success=" + result;
+	    } catch (NoSuchElementException e) {
+	        return "redirect:/user/dashboard?error=" + e.getMessage();
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return "redirect:/user/dashboard?error=" + e.getMessage();
+        } catch (Exception e) {
+            return "redirect:/user/dashboard?error=Transaction error.";
+        }
 	}
 }

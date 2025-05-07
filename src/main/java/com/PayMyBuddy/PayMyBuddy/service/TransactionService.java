@@ -2,14 +2,10 @@ package com.PayMyBuddy.PayMyBuddy.service;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import com.PayMyBuddy.PayMyBuddy.configuration.CustomUserDetailsService;
 import com.PayMyBuddy.PayMyBuddy.dto.TransactionDTO;
 import com.PayMyBuddy.PayMyBuddy.model.AdminWallet;
@@ -18,7 +14,7 @@ import com.PayMyBuddy.PayMyBuddy.model.User;
 import com.PayMyBuddy.PayMyBuddy.repository.AdminWalletRepository;
 import com.PayMyBuddy.PayMyBuddy.repository.DBTransactionRepository;
 import com.PayMyBuddy.PayMyBuddy.repository.DBUserRepository;
-
+import java.util.NoSuchElementException;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 
@@ -42,27 +38,24 @@ public class TransactionService {
 	 */
 
 	@Transactional
-	public ResponseEntity<String> transaction(Transaction transaction) {
+	public String transaction(Transaction transaction) {
 
-		try {
 			User user = customUserDetailsService.getAuthenticatedUser();
 
 			User friend = dbUserRepository.findByEmail(transaction.getReceiverEmail())
 					.orElseThrow(() -> {
 						log.error("Transaction failed: Recipient {} not found", transaction.getReceiverEmail());
-						return new RuntimeException("User with email " + transaction.getReceiverEmail() + " not found");
+						return new NoSuchElementException("User with email " + transaction.getReceiverEmail() + " not found");
 					});
 
 			if (transaction.getAmount() < 0.01 || transaction.getAmount() == 0.0) {
 				log.error("Bank transfer failed: Invalid amount");
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-						.body("Invalid amount.");
+				throw new IllegalArgumentException("Invalid amount.");
 			}	         
 
 			if (transaction.getAmount() > 500) {
 				log.error("Transfer failed: Amount too high");
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-						.body("Amount too high.");
+				throw new IllegalArgumentException("Amount too high.");
 			}
 
 			double fee = transaction.getAmount() * 0.005;
@@ -70,12 +63,11 @@ public class TransactionService {
 
 			if (user.getBalance() < totalDebit) {
 				log.error("Transaction failed: Insufficient balance for {}", user.getEmail());
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-						.body("Insufficient balance to complete the transaction.");
+				throw new IllegalStateException("Insufficient balance to complete the transaction.");
 			}
 
-			user.setBalance(user.getBalance() - totalDebit);
-			friend.setBalance(friend.getBalance() + transaction.getAmount());
+			user.setBalance(Math.round((user.getBalance() - totalDebit) * 100.0) / 100.0);
+			friend.setBalance(Math.round((friend.getBalance() + transaction.getAmount()) * 100.0) / 100.0);
 
 			AdminWallet wallet = adminWalletRepository.findById(1L)
 					.orElseGet(() -> {
@@ -85,7 +77,7 @@ public class TransactionService {
 						return w;
 					});
 
-			wallet.setBalance(wallet.getBalance() + fee);   
+			wallet.setBalance(Math.round((wallet.getBalance() + fee) * 100.0) / 100.0);
 
 			Transaction transactions = new Transaction();
 			transactions.setSender(user);
@@ -99,15 +91,8 @@ public class TransactionService {
 			adminWalletRepository.save(wallet);
 
 			log.info("Successful transaction of {}€ from {} to {}", transaction.getAmount(), user.getEmail(), friend.getEmail());
-			return ResponseEntity.status(HttpStatus.OK).body("Transaction successfully completed.");
+			 return "Transaction successfully completed.";
 
-		} catch (RuntimeException e) {
-			log.error("Error during transaction: {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-		} catch (Exception e) {
-			log.error("Unexpected error during transaction: {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the transaction.");
-		}
 	}
 
 
@@ -117,30 +102,26 @@ public class TransactionService {
 	 * @return a success or error message.
 	 */
 
-	public ResponseEntity<String> addToBankAccount(Transaction transaction) {
+	public String addToBankAccount(Transaction transaction) {
 
-		try {
 			User user = customUserDetailsService.getAuthenticatedUser();
 
 			if (transaction.getAmount() < 0.01) {
 				log.error("Bank transfer failed: Invalid amount");
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-						.body("Invalid amount.");
+				throw new IllegalArgumentException("Invalid amount.");
 			}
 
 			if (user.getBalance() < transaction.getAmount()) {
 				log.error("Bank transfer failed: Insufficient balance for {}", user.getEmail());
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-						.body("Insufficient balance to complete the operation.");
+				throw new IllegalStateException("Insufficient balance to complete the operation.");
 			}
 
 			if (transaction.getAmount() > 500) {
 				log.error("Bank transfer failed: Amount too high");
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-						.body("Amount too high.");
+				throw new IllegalArgumentException("Amount too high.");
 			}
 
-			user.setBalance(user.getBalance() - transaction.getAmount());          
+			user.setBalance(Math.round((user.getBalance() - transaction.getAmount()) * 100.0) / 100.0);          
 
 			Transaction transactions = new Transaction();
 			transactions.setSender(user);
@@ -153,15 +134,7 @@ public class TransactionService {
 			dbUserRepository.save(user);
 
 			log.info("Bank deposit of {}€ by {}", transaction.getAmount(), user.getEmail());
-			return ResponseEntity.status(HttpStatus.OK).body("Amount successfully added to your bank account.");
-
-		} catch (RuntimeException e) {
-			log.error("Error during bank deposit: {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-		} catch (Exception e) {
-			log.error("Unexpected error during bank deposit: {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the operation.");
-		}
+			return "Amount successfully added to your bank account.";
 
 	}
 
@@ -171,24 +144,21 @@ public class TransactionService {
 	 * @return a success or error message.
 	 */
 
-	public ResponseEntity<String> withdrawToBankAccount(Transaction transaction) {
+	public String withdrawToBankAccount(Transaction transaction) {
 
-		try {
 			User user = customUserDetailsService.getAuthenticatedUser();
 
 			if (transaction.getAmount() < 0.01) {
 				log.error("Bank withdrawal failed: Invalid amount");
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-						.body("Invalid amount.");
+				 throw new IllegalArgumentException("Invalid amount.");
 			}
 
 			if (transaction.getAmount() > 500) {
 				log.error("Bank withdrawal failed: Amount too high");
-				return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-						.body("Amount too high.");
+				throw new IllegalArgumentException("Amount too high.");
 			}
 
-			user.setBalance(user.getBalance() + transaction.getAmount());
+			user.setBalance(Math.round((user.getBalance() + transaction.getAmount()) * 100.0) / 100.0);
 
 
 			Transaction transactions = new Transaction();
@@ -203,15 +173,7 @@ public class TransactionService {
 
 
 			log.info("Bank withdrawal of {}€ for {}", transaction.getAmount(), user.getEmail());
-			return ResponseEntity.status(HttpStatus.OK).body("Withdrawal successfully completed.");
-
-		} catch (RuntimeException e) {
-			log.error("Error during bank withdrawal: {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-		} catch (Exception e) {
-			log.error("Unexpected error during bank withdrawal: {}", e.getMessage());
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred during the operation.");
-		}
+			return "Withdrawal successfully completed.";
 
 	}
 

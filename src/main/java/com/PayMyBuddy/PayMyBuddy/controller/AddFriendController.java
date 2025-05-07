@@ -1,7 +1,6 @@
 package com.PayMyBuddy.PayMyBuddy.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,12 +26,13 @@ public class AddFriendController {
 
 	@PostMapping("/user/add-friend")
 	public String addFriend(@RequestParam("friendEmail") String friendEmail, Model model) {
-		ResponseEntity<String> response = connectionService.createConnection(friendEmail);
-
-		if (response.getStatusCode().is2xxSuccessful()) {
-			model.addAttribute("success", response.getBody());
-		} else {
-			model.addAttribute("error", response.getBody());
+		try {
+			String result = connectionService.createConnection(friendEmail);
+			model.addAttribute("success", result);
+		} catch (IllegalArgumentException | IllegalStateException e) {
+			model.addAttribute("error", e.getMessage());
+		} catch (Exception e) {
+			model.addAttribute("error", "An unexpected error occurred.");
 		}
 
 		return "add-friend";
