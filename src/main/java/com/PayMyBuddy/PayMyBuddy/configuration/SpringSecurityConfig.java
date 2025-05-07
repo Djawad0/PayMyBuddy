@@ -46,9 +46,11 @@ public class SpringSecurityConfig {
 		.logout(logout -> logout
 				.logoutUrl("/logout")
 				.logoutSuccessUrl("/login?logout")
+				.invalidateHttpSession(true) 
+				.deleteCookies("JSESSIONID")
 				.permitAll()
 				)
-		.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+		.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
 		.authenticationProvider(authenticationProvider());
 
 		return http.build();

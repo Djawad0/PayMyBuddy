@@ -1,6 +1,7 @@
 package com.PayMyBuddy.PayMyBuddy.Service.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import java.util.Optional;
@@ -8,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
 import com.PayMyBuddy.PayMyBuddy.configuration.CustomUserDetailsService;
 import com.PayMyBuddy.PayMyBuddy.model.Connection;
 import com.PayMyBuddy.PayMyBuddy.model.ConnectionId;
@@ -46,9 +46,11 @@ public class ConnectionServiceTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);	    
 
-		ResponseEntity<String> response = connectionService.createConnection("test@example.com");
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+	        connectionService.createConnection("test@example.com");
+	    });
 
-		assertEquals("You cannot add yourself as a friend.", response.getBody());
+	    assertEquals("You cannot add yourself as a friend.", thrown.getMessage());
 
 	}
 
@@ -62,9 +64,11 @@ public class ConnectionServiceTest {
 
 		when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.empty());	  
 
-		ResponseEntity<String> response = connectionService.createConnection("test@example.com");
+		IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+	        connectionService.createConnection("test@example.com");
+	    });
 
-		assertEquals("User not found : test@example.com", response.getBody());
+	    assertEquals("User not found: test@example.com", thrown.getMessage());
 
 	}
 
@@ -80,9 +84,11 @@ public class ConnectionServiceTest {
 
 		when(dbConnectionRepository.existsById(any(ConnectionId.class))).thenReturn(true);	  
 
-		ResponseEntity<String> response = connectionService.createConnection("test@example.com");
+		IllegalStateException thrown = assertThrows(IllegalStateException.class, () -> {
+	        connectionService.createConnection("test@example.com");
+	    });
 
-		assertEquals("You have already added this user.", response.getBody());
+	    assertEquals("You have already added this user.", thrown.getMessage());
 
 	}
 
@@ -98,9 +104,10 @@ public class ConnectionServiceTest {
 
 		when(dbConnectionRepository.existsById(any(ConnectionId.class))).thenReturn(false);	  
 
-		ResponseEntity<String> response = connectionService.createConnection("test@example.com");
-
-		assertEquals("Friend successfully added.", response.getBody());
+		String response = connectionService.createConnection("test@example.com");
+		
+	    assertEquals("Friend successfully added.", response);
 
 	}
+	
 }

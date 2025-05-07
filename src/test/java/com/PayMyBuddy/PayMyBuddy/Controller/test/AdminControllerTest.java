@@ -4,13 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import com.PayMyBuddy.PayMyBuddy.controller.AdminController;
 import com.PayMyBuddy.PayMyBuddy.model.AdminWallet;
@@ -59,8 +58,7 @@ public class AdminControllerTest {
 	void testDeleteUserByAdmin_Success() {
 
 		String email = "user@example.com";
-		when(userService.deleteUserByEmail(email))
-		.thenReturn(new ResponseEntity<>("Deleted user", HttpStatus.OK));
+		when(userService.deleteUserByEmail(email)).thenReturn("Deleted user");
 
 
 		String viewName = adminController.deleteUserByAdmin(email, model);
@@ -69,18 +67,24 @@ public class AdminControllerTest {
 		assertEquals("redirect:/admin/dashboard?success=Deleted user", viewName);
 	}
 
-	@Test
-	void testDeleteUserByAdmin_Error() {
+	 @Test
+	    void testDeleteUserByAdmin_NoSuchElementException() {
+	        String email = "user@example.com";
+	        when(userService.deleteUserByEmail(email)).thenThrow(new NoSuchElementException("User not found"));
 
-		String email = "user@example.com";
-		when(userService.deleteUserByEmail(email))
-		.thenReturn(new ResponseEntity<>("Deletion error", HttpStatus.NOT_FOUND));
+	        String viewName = adminController.deleteUserByAdmin(email, model);
 
+	        assertEquals("redirect:/admin/dashboard?error=User not found", viewName);
+	    }
 
-		String viewName = adminController.deleteUserByAdmin(email, model);
+	    @Test
+	    void testDeleteUserByAdmin_GenericException() {
+	        String email = "user@example.com";
+	        when(userService.deleteUserByEmail(email)).thenThrow(new RuntimeException("Internal error"));
 
+	        String viewName = adminController.deleteUserByAdmin(email, model);
 
-		assertEquals("redirect:/admin/dashboard?error=Deletion error", viewName);
-	}
+	        assertEquals("redirect:/admin/dashboard?error=Error when deleting user.", viewName);
+	    }
 
 }

@@ -6,13 +6,13 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import com.PayMyBuddy.PayMyBuddy.configuration.CustomUserDetailsService;
 import com.PayMyBuddy.PayMyBuddy.controller.DashboardController;
@@ -72,23 +72,51 @@ class DashboardControllerTest {
 	@Test
 	void testTransaction_Success() {
 
-		when(transactionService.transaction(any(Transaction.class)))
-		.thenReturn(new ResponseEntity<>("Successful transaction", HttpStatus.OK));
+		when(transactionService.transaction(any(Transaction.class))).thenReturn("Transaction completed successfully");
 
 		String viewName = dashboardController.transaction(transaction, model);
 
-		assertEquals("redirect:/user/dashboard?success=Successful transaction", viewName);
+		assertEquals("redirect:/user/dashboard?success=Transaction completed successfully", viewName);
 	}
 
-	@Test
-	void testTransaction_Error() {
+	 @Test
+	    void testTransactionNoSuchElementException() {
+	        when(transactionService.transaction(any(Transaction.class)))
+	                .thenThrow(new NoSuchElementException("User not found"));
 
-		when(transactionService.transaction(any(Transaction.class)))
-		.thenReturn(new ResponseEntity<>("Transaction error", HttpStatus.NOT_FOUND));
+	        String result = dashboardController.transaction(transaction, model);
 
-		String viewName = dashboardController.transaction(transaction, model);
+	        assertEquals("redirect:/user/dashboard?error=User not found", result);
+	    }
 
-		assertEquals("redirect:/user/dashboard?error=Transaction error", viewName);
-	}
+	    @Test
+	    void testTransactionIllegalArgumentException() {
+	        when(transactionService.transaction(any(Transaction.class)))
+	                .thenThrow(new IllegalArgumentException("Invalid transaction"));
+
+	        String result = dashboardController.transaction(transaction, model);
+
+	        assertEquals("redirect:/user/dashboard?error=Invalid transaction", result);
+	    }
+
+	    @Test
+	    void testTransactionIllegalStateException() {
+	        when(transactionService.transaction(any(Transaction.class)))
+	                .thenThrow(new IllegalStateException("Insufficient funds"));
+
+	        String result = dashboardController.transaction(transaction, model);
+
+	        assertEquals("redirect:/user/dashboard?error=Insufficient funds", result);
+	    }
+
+	    @Test
+	    void testTransactionGeneralException() {
+	        when(transactionService.transaction(any(Transaction.class)))
+	                .thenThrow(new RuntimeException("Unexpected error"));
+
+	        String result = dashboardController.transaction(transaction, model);
+
+	        assertEquals("redirect:/user/dashboard?error=Transaction error.", result);
+	    }
 
 }

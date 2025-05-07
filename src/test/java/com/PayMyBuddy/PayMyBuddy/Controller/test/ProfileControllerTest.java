@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import com.PayMyBuddy.PayMyBuddy.configuration.CustomUserDetailsService;
 import com.PayMyBuddy.PayMyBuddy.controller.ProfileController;
@@ -106,8 +105,7 @@ public class ProfileControllerTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 
-		ResponseEntity<String> responseEntity = ResponseEntity.ok("Information successfully updated");
-		when(userService.updateUser(any(UpdateUserRequest.class))).thenReturn(responseEntity);
+		 when(userService.updateUser(any(UpdateUserRequest.class))).thenReturn("User information updated successfully");
 
 		when(customUserDetailsService.loadUserByUsername(user.getEmail())).thenThrow(new UsernameNotFoundException("Updated user not found."));
 
@@ -125,15 +123,13 @@ public class ProfileControllerTest {
 		user.setEmail("test@example.com");
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
-
-		ResponseEntity<String> responseEntity = ResponseEntity.notFound().build();
-		when(userService.updateUser(any(UpdateUserRequest.class))).thenReturn(responseEntity);
+		when(userService.updateUser(any(UpdateUserRequest.class))).thenReturn("Some update error");
 
 
 		String result = profileController.updateProfile(user, "1234", "12345", "12345", model);
 
 
-		verify(model).addAttribute("error", responseEntity.getBody());
+		verify(model).addAttribute("error", "Some update error");
 		assertEquals("profile", result);
 	}
 
@@ -144,9 +140,7 @@ public class ProfileControllerTest {
 		user.setEmail("test@example.com");
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
-
-		ResponseEntity<String> responseEntity = ResponseEntity.ok("Information successfully updated");
-		when(userService.updateUser(any(UpdateUserRequest.class))).thenReturn(responseEntity);
+		when(userService.updateUser(any(UpdateUserRequest.class))).thenReturn("User information updated successfully");
 
 		UserDetails updatedUserDetails = new org.springframework.security.core.userdetails.User(
 				user.getEmail(),
@@ -157,20 +151,14 @@ public class ProfileControllerTest {
 		String result = profileController.updateProfile(user, "1234", "12345", "12345", model);
 
 
-		verify(model).addAttribute("success", "Information successfully updated");
+		verify(model).addAttribute("success", "User information updated successfully");
 		assertEquals("profile", result);
 	}
 
 	@Test
 	void testDepositMoneyError() {
 
-		User user = new User();
-		user.setEmail("test@example.com");
-
-		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
-
-		ResponseEntity<String> responseEntity = ResponseEntity.badRequest().body("Incorrect amount.");
-		when(transactionService.addToBankAccount(transaction)).thenReturn(responseEntity);
+		when(customUserDetailsService.getAuthenticatedUser()).thenThrow(new RuntimeException("Something went wrong"));
 
 		String result = profileController.depositMoney(0.0, model);
 
@@ -186,8 +174,8 @@ public class ProfileControllerTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 
-		ResponseEntity<String> responseEntity = ResponseEntity.ok("Amount successfully added to your bank account.");
-		when(transactionService.addToBankAccount(any(Transaction.class))).thenReturn(responseEntity);
+		 when(transactionService.addToBankAccount(any(Transaction.class)))
+         .thenReturn("Amount successfully added to your bank account.");
 
 		String result = profileController.depositMoney(10.0, model);
 
@@ -197,17 +185,12 @@ public class ProfileControllerTest {
 	@Test
 	void testWithdrawMoneyError() {
 
-		User user = new User();
-		user.setEmail("test@example.com");
+		 when(customUserDetailsService.getAuthenticatedUser()).thenThrow(new RuntimeException("Something went wrong"));
 
-		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
+	        String result = profileController.withdrawMoney(0.0, model);
 
-		ResponseEntity<String> responseEntity = ResponseEntity.badRequest().body("Incorrect amount.");
-		when(transactionService.withdrawToBankAccount(any(Transaction.class))).thenReturn(responseEntity);
-
-		String result = profileController.withdrawMoney(0.0, model);
-
-		assertTrue(result.contains("redirect:/user/profile?errorWithdrawMoney="));
+	        verify(model).addAttribute("errorWithdrawMoney", "Error during withdrawal.");
+	        assertEquals("profile", result);
 	}
 
 	@Test
@@ -218,11 +201,14 @@ public class ProfileControllerTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 
-		ResponseEntity<String> responseEntity = ResponseEntity.ok("Withdrawal successfully completed.");
-		when(transactionService.withdrawToBankAccount(any(Transaction.class))).thenReturn(responseEntity);
+		 when(transactionService.withdrawToBankAccount(any(Transaction.class)))
+         .thenReturn("Withdrawal successfully completed.");
 
 		String result = profileController.withdrawMoney(10.0, model);
 
 		assertTrue(result.contains("redirect:/user/profile?successWithdrawMoney="));
 	}
+	
+	
+	
 }

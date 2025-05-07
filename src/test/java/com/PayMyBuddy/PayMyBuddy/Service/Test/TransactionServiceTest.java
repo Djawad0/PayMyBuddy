@@ -1,16 +1,17 @@
 package com.PayMyBuddy.PayMyBuddy.Service.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
 import com.PayMyBuddy.PayMyBuddy.configuration.CustomUserDetailsService;
 import com.PayMyBuddy.PayMyBuddy.dto.TransactionDTO;
 import com.PayMyBuddy.PayMyBuddy.model.AdminWallet;
@@ -56,9 +57,11 @@ public class TransactionServiceTest {
 
 		when(userRepository.findByEmail("test@exemple.com")).thenReturn(Optional.empty());
 
-		ResponseEntity<String> response = transactionService.transaction(transaction);
+		NoSuchElementException exception = assertThrows(NoSuchElementException.class, () -> {
+	        transactionService.transaction(transaction);
+	    });
 
-		assertEquals("User with email test@exemple.com not found", response.getBody());
+	    assertEquals("User with email test@exemple.com not found", exception.getMessage());
 	}
 
 	@Test
@@ -72,9 +75,11 @@ public class TransactionServiceTest {
 
 		when(userRepository.findByEmail("test@exemple.com")).thenReturn(Optional.of(user));
 
-		ResponseEntity<String> response = transactionService.transaction(transaction);
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+	        transactionService.transaction(transaction);
+	    });
 
-		assertEquals("Invalid amount.", response.getBody());
+	    assertEquals("Invalid amount.", exception.getMessage());
 	}
 
 	@Test
@@ -88,9 +93,11 @@ public class TransactionServiceTest {
 
 		when(userRepository.findByEmail("test@exemple.com")).thenReturn(Optional.of(user));
 
-		ResponseEntity<String> response = transactionService.transaction(transaction);
+		 IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+		        transactionService.transaction(transaction);
+		    });
 
-		assertEquals("Invalid amount.", response.getBody());
+		    assertEquals("Invalid amount.", exception.getMessage());
 	}
 
 
@@ -105,9 +112,11 @@ public class TransactionServiceTest {
 
 		when(userRepository.findByEmail("test@exemple.com")).thenReturn(Optional.of(user));
 
-		ResponseEntity<String> response = transactionService.transaction(transaction);
+		 IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+		        transactionService.transaction(transaction);
+		    });
 
-		assertEquals("Amount too high.", response.getBody());
+		    assertEquals("Amount too high.", exception.getMessage());
 	}
 
 	@Test
@@ -124,9 +133,11 @@ public class TransactionServiceTest {
 
 		when(userRepository.findByEmail("test@exemple.com")).thenReturn(Optional.of(user));
 
-		ResponseEntity<String> response = transactionService.transaction(transaction);
+		IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+	        transactionService.transaction(transaction);
+	    });
 
-		assertEquals("Insufficient balance to complete the transaction.", response.getBody());
+	    assertEquals("Insufficient balance to complete the transaction.", exception.getMessage());
 	}
 
 	@Test
@@ -146,9 +157,9 @@ public class TransactionServiceTest {
 		when(adminWalletRepository.findById(1L)).thenReturn(Optional.empty());
 
 
-		ResponseEntity<String> response = transactionService.transaction(transaction);
+		String response = transactionService.transaction(transaction);
 
-		assertEquals("Transaction successfully completed.", response.getBody());
+	    assertEquals("Transaction successfully completed.", response);
 	}
 
 
@@ -173,9 +184,9 @@ public class TransactionServiceTest {
 		when(adminWalletRepository.findById(1L)).thenReturn(Optional.of(existingWallet));
 
 
-		ResponseEntity<String> response = transactionService.transaction(transaction);
+		String response = transactionService.transaction(transaction);
 
-		assertEquals("Transaction successfully completed.", response.getBody());
+	    assertEquals("Transaction successfully completed.", response);
 	}
 
 
@@ -187,9 +198,11 @@ public class TransactionServiceTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 
-		ResponseEntity<String> response = transactionService.addToBankAccount(transaction);
+		 IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+		        transactionService.addToBankAccount(transaction);
+		    });
 
-		assertEquals("Invalid amount.", response.getBody());
+		    assertEquals("Invalid amount.", exception.getMessage());
 	}
 
 	@Test
@@ -203,9 +216,11 @@ public class TransactionServiceTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 
-		ResponseEntity<String> response = transactionService.addToBankAccount(transaction);
+		IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+	        transactionService.addToBankAccount(transaction);
+	    });
 
-		assertEquals("Insufficient balance to complete the operation.", response.getBody());
+	    assertEquals("Insufficient balance to complete the operation.", exception.getMessage());
 	}
 
 	@Test
@@ -219,9 +234,11 @@ public class TransactionServiceTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 
-		ResponseEntity<String> response = transactionService.addToBankAccount(transaction);
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+	        transactionService.addToBankAccount(transaction);
+	    });
 
-		assertEquals("Amount too high.", response.getBody());
+	    assertEquals("Amount too high.", exception.getMessage());
 	}
 
 	@Test
@@ -236,9 +253,11 @@ public class TransactionServiceTest {
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 		when(userRepository.save(user)).thenThrow(new RuntimeException("Saving error"));
 
-		ResponseEntity<String> response = transactionService.addToBankAccount(transaction);
+		RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+	        transactionService.addToBankAccount(transaction);
+	    });
 
-		assertEquals("Saving error", response.getBody());
+	    assertEquals("Saving error", exception.getMessage());
 	}
 
 	@Test
@@ -252,9 +271,9 @@ public class TransactionServiceTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 
-		ResponseEntity<String> response = transactionService.addToBankAccount(transaction);
+		 String response = transactionService.addToBankAccount(transaction);
 
-		assertEquals("Amount successfully added to your bank account.", response.getBody());
+		 assertEquals("Amount successfully added to your bank account.", response);
 	}
 
 	@Test
@@ -265,9 +284,11 @@ public class TransactionServiceTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 
-		ResponseEntity<String> response = transactionService.withdrawToBankAccount(transaction);
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+	        transactionService.withdrawToBankAccount(transaction);
+	    });
 
-		assertEquals("Invalid amount.", response.getBody());
+	    assertEquals("Invalid amount.", exception.getMessage());
 	}
 
 	@Test
@@ -278,9 +299,11 @@ public class TransactionServiceTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 
-		ResponseEntity<String> response = transactionService.withdrawToBankAccount(transaction);
+		 IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+		        transactionService.withdrawToBankAccount(transaction);
+		    });
 
-		assertEquals("Amount too high.", response.getBody());
+		    assertEquals("Amount too high.", exception.getMessage());
 	}
 
 
@@ -292,9 +315,9 @@ public class TransactionServiceTest {
 
 		when(customUserDetailsService.getAuthenticatedUser()).thenReturn(user);
 
-		ResponseEntity<String> response = transactionService.withdrawToBankAccount(transaction);
+		String response = transactionService.withdrawToBankAccount(transaction);
 
-		assertEquals("Withdrawal successfully completed.", response.getBody());
+	    assertEquals("Withdrawal successfully completed.", response);
 	}
 
 	@Test
@@ -341,4 +364,5 @@ public class TransactionServiceTest {
 		assertEquals(100.0, result.get(0).getAmount());
 
 	}
+	
 }

@@ -1,8 +1,8 @@
 package com.PayMyBuddy.PayMyBuddy.controller;
 
+import java.util.NoSuchElementException;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -52,6 +52,8 @@ public class ProfileController {
 			Model model) {
 
 		if (newPassword != null && !newPassword.isBlank() && !newPassword.equals(confirmNewPassword)) {
+			User updatedUser = customUserDetailsService.getAuthenticatedUser(); 
+	        model.addAttribute("user", updatedUser);
 			model.addAttribute("errorPassword", "Passwords do not match.");
 			return "profile";
 		}
@@ -76,12 +78,12 @@ public class ProfileController {
 
 
 
+		try {
+	            String result = userService.updateUser(updateRequest);
 
-		ResponseEntity<String> response = userService.updateUser(updateRequest);
-
-		if (response.getStatusCode() == HttpStatus.OK) {
+	            if ("User information updated successfully".equals(result)) {
 			try {
-
+			
 				UserDetails updatedUserDetails = customUserDetailsService.loadUserByUsername(user.getEmail());
 
 
@@ -92,8 +94,12 @@ public class ProfileController {
 						);
 
 				SecurityContextHolder.getContext().setAuthentication(newAuth);
+				
+				User updatedUser = customUserDetailsService.getAuthenticatedUser();  
+	               
+                model.addAttribute("user", updatedUser);
 
-				model.addAttribute("success", response.getBody());
+				model.addAttribute("success", result);
 
 				return "profile";
 
@@ -102,9 +108,16 @@ public class ProfileController {
 				return "profile";
 			}
 		} else {
-			model.addAttribute("error", response.getBody());
+			model.addAttribute("error", result);
 			return "profile";
 		}
+		} catch (IllegalArgumentException | IllegalStateException | SecurityException | NoSuchElementException e) {
+			User updatedUser = customUserDetailsService.getAuthenticatedUser(); 
+	        model.addAttribute("user", updatedUser);
+	        model.addAttribute("error", e.getMessage());
+	    }
+		 return "profile";
+		
 	}
 
 	@PostMapping("/user/deposit")
@@ -118,16 +131,13 @@ public class ProfileController {
 			transaction.setAmount(amount);
 			transaction.setDescription("Deposit to bank account");
 
-			ResponseEntity<String> response =  transactionService.addToBankAccount(transaction);
+			String result = transactionService.addToBankAccount(transaction);
+                    
+            return "redirect:/user/profile?successDepositMoney=" + result;
 
-			if (response.getStatusCode().is2xxSuccessful()) {		            
-				return "redirect:/user/profile?successDepositMoney=" + response.getBody();
-			} else {	          
-				return "redirect:/user/profile?errorDepositMoney=" + response.getBody();
-			}
-
-
-		} catch (Exception e) {
+		} catch (IllegalArgumentException | IllegalStateException e) {
+	        return "redirect:/user/profile?errorDepositMoney=" + e.getMessage();
+	    }catch (Exception e) {
 			model.addAttribute("errorDepositMoney", "Error during deposit.");
 			return "profile";  
 		}
@@ -144,15 +154,14 @@ public class ProfileController {
 			transaction.setAmount(amount);
 			transaction.setDescription("Bank withdrawal");
 
-			ResponseEntity<String> response =  transactionService.withdrawToBankAccount(transaction);
+	        String result = transactionService.withdrawToBankAccount(transaction);
+                    
+            return "redirect:/user/profile?successWithdrawMoney=" + result;
+	           
 
-			if (response.getStatusCode().is2xxSuccessful()) {		            
-				return "redirect:/user/profile?successWithdrawMoney=" + response.getBody();
-			} else {	          
-				return "redirect:/user/profile?errorWithdrawMoney=" + response.getBody();
-			}
-
-		} catch (Exception e) {
+		}  catch (IllegalArgumentException e) {
+	        return "redirect:/user/profile?errorWithdrawMoney=" + e.getMessage();
+	    } catch (Exception e) {
 			model.addAttribute("errorWithdrawMoney", "Error during withdrawal.");
 			return "profile";  
 		}
